@@ -1305,7 +1305,7 @@ static picoos_uint8 kdtMapInGraph(const kdt_subobj_t *dt,
                                   const picoos_uint8 invalmaxlen,
                                   picoos_uint16 *outval,
                                   picoos_uint16 *outfallbackval) {
-    picoos_uint8 ilen;
+    picoos_uint8 ilen = 0;
     picoos_uint8 tlen;
     picoos_uint8 cont;
     picoos_uint32 pos;
