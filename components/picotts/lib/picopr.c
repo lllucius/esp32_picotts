@@ -1237,7 +1237,7 @@ static void pr_appendItemToOutItemList (picodata_ProcessingUnit this, pr_subobj_
             litem->suc = pr_isSUC(litem->data);
 
             pr_appendItem(this, firstItem, lastItem, litem);
-            if (pr->spellMode == PR_SPELL_WITH_SENTENCE_BREAK) {
+            if (pr->spellMode == PR_SPELL_WITH_PHRASE_BREAK) {
                 pr_newItem(this, pr_DynMem,& litem, PICODATA_ITEM_TOKEN, 2, /*inItem*/FALSE);
                 if (pr->outOfMemory) return;
                 litem->head.type = PICODATA_ITEM_TOKEN;
