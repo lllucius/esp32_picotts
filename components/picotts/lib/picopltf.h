@@ -38,6 +38,7 @@
 #define PICO_Windows    1   /* Windows */
 #define PICO_MacOSX     5   /* Macintosh OS X */
 #define PICO_Linux      7   /* Linux */
+#define PICO_ESP        9   /* ESP */
 
 /* * definition of current platform ***/
 #if !defined(PICO_PLATFORM)
@@ -47,6 +48,8 @@
 #define PICO_PLATFORM    PICO_MacOSX
 #elif defined(linux) || defined(__linux__) || defined(__linux)
 #define PICO_PLATFORM    PICO_Linux
+#elif defined(ESP_PLATFORM)
+#define PICO_PLATFORM    PICO_ESP
 #else
 #error PICO_PLATFORM not defined
 #endif
@@ -60,6 +63,8 @@
 #define PICO_PLATFORM_STRING "MacOSX"
 #elif (PICO_PLATFORM == PICO_Linux)
 #define PICO_PLATFORM_STRING "Linux"
+#elif (PICO_PLATFORM == PICO_ESP)
+#define PICO_PLATFORM_STRING "ESP"
 #elif (PICO_PLATFORM == PICO_GENERIC)
 #define PICO_PLATFORM_STRING "UnknownPlatform"
 #endif
