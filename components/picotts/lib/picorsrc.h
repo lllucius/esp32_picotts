@@ -116,9 +116,13 @@ picoos_int16 picoctrl_isValidResourceHandle(picorsrc_Resource resource);
 pico_status_t picorsrc_loadResource(picorsrc_ResourceManager this,
         picoos_char * fileName, picorsrc_Resource * resource);
 
+/* add preloaded resource. the type of resource file, magic numbers, checksum etc. are in the header, then follows the directory
+ * (with fixed structure per resource type), then the knowledge bases themselves (as byte streams) */
+pico_status_t picorsrc_loadMemoryResource(picorsrc_ResourceManager that,
+        picoos_char * memoryAddress, picorsrc_Resource * resource);
+
 /* unload resource file. (warn if resource file is busy) */
 pico_status_t picorsrc_unloadResource(picorsrc_ResourceManager this, picorsrc_Resource * rsrc);
-
 
 pico_status_t picorsrc_createDefaultResource(picorsrc_ResourceManager this /*,
         picorsrc_Resource * resource */);

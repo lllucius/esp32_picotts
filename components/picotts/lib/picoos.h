@@ -88,6 +88,10 @@ picoos_char * picoos_strcat(picoos_char *, const picoos_char *);
 /* copies 'length' bytes from 'src' to 'dest'. (regions may be overlapping) no error checks! */
 void * picoos_mem_copy(const void * src, void * dst,  picoos_objsize_t length);
 
+/* compare 'length' bytes from 'src' to 'dest' */
+picoos_int32 picoos_mem_cmp(const void * src, void * dst,  picoos_objsize_t length);
+
+
 /* safe versions */
 picoos_objsize_t picoos_strlcpy(picoos_char *dst, const picoos_char *src, picoos_objsize_t siz);
 void * picoos_mem_set(void * dest, picoos_uint8 byte_val, picoos_objsize_t length);

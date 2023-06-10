@@ -335,6 +335,41 @@ PICO_FUNC pico_loadResource(
 }
 
 /**
+ * pico_loadMemoryResource : Adds a preloaded resource into the Pico system
+ * @param    system : pointer to a pico_System struct
+ * @param    *lingwareFileName : lingware resource file name
+ * @param    *outLingware : pointer to receive the loaded lingware resource memory area address
+ * @return  PICO_OK : successful
+ * @return     PICO_ERR_INVALID_HANDLE, PICO_ERR_NULLPTR_ACCESS : errors
+ * @callgraph
+ * @callergraph
+*/
+PICO_FUNC pico_loadMemoryResource(
+        pico_System system,
+        const pico_Char *memoryAddress,
+        pico_Resource *outLingware
+        )
+{
+    pico_Status status = PICO_OK;
+
+    if (!is_valid_system_handle(system)) {
+        status = PICO_ERR_INVALID_HANDLE;
+    } else if ((memoryAddress == NULL) || (outLingware == NULL)) {
+        status = PICO_ERR_NULLPTR_ACCESS;
+    } else {
+        PICODBG_DEBUG(("memory usage before resource loading"));
+        picoos_showMemUsage(system->common->mm, FALSE, TRUE);
+        picoos_emReset(system->common->em);
+        status = picorsrc_loadMemoryResource(system->rm, (picoos_char *) memoryAddress, (picorsrc_Resource *) outLingware);
+        PICODBG_DEBUG(("memory used to load resource %p", memoryAddress));
+        picoos_showMemUsage(system->common->mm, TRUE, FALSE);
+    }
+
+    return status;
+}
+
+
+/**
  * pico_unloadResource : unLoads a resource file from the Pico system
  * @param    system : pointer to a pico_System struct
  * @param    *inoutLingware : pointer to the loaded lingware resource memory area address

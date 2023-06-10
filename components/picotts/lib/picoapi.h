@@ -283,6 +283,24 @@ PICO_FUNC pico_loadResource(
         );
 
 /**
+   Adds a preloaded resource into the Pico system. The number of resource
+   files loaded in parallel is limited by PICO_MAX_NUM_RESOURCES.
+   Loading of a resource file may be done at any time (even in
+   parallel to a running engine doing TTS synthesis), but with the
+   general restriction that functions taking a system handle as their
+   first argument must be called in a mutually exclusive fashion. The
+   loaded resource will be available only to engines started after the
+   resource is fully loaded, i.e., not to engines currently
+   running.
+*/
+PICO_FUNC pico_loadMemoryResource(
+        pico_System system,
+        const pico_Char *resourceAddress,
+        pico_Resource *outResource
+        );
+
+
+/**
    Unloads a resource file from the Pico system. If no engine uses the
    resource file, the resource is removed immediately and its
    associated internal memory is released, otherwise

@@ -179,6 +179,12 @@ void * picoos_mem_copy(const void * src, void * dst,  picoos_objsize_t length)
     return picopal_mem_copy(src,dst,(picopal_objsize_t) length);
 }
 
+/* compares 'length' bytes from 'src' to 'dest'. */
+picoos_int32 picoos_mem_cmp(const void * src, void * dst,  picoos_objsize_t length)
+{
+    return picopal_mem_cmp(src,dst,(picopal_objsize_t) length);
+}
+
 /* sets 'length' bytes starting at dest[0] to 'byte_val' */
 void * picoos_mem_set(void * dest, picoos_uint8 byte_val, picoos_objsize_t length) {
           return picopal_mem_set(dest,(picopal_uint8)byte_val, (picopal_objsize_t)length);
@@ -1989,6 +1995,33 @@ pico_status_t picoos_readPicoHeader(picoos_File f, picoos_uint32 * headerlen)
         return PICO_EXC_UNEXPECTED_FILE_TYPE;
     }
 }
+
+pico_status_t picoos_skipPicoHeader(picoos_uint8 * memoryAddress, picoos_uint32 * headerlen)
+{
+    picoos_char str[32];
+    picoos_uint8 strlen;
+    picoos_uint8 done;
+
+    picoos_getSVOXHeaderString(str,&strlen,32);
+    /* search for svox header somewhere near the start. This allows for initial
+     * non-svox-header bytes for a customer-specific header and/or filling bytes for alignment */
+    *headerlen = strlen;
+    done = (picopal_mem_cmp(str,memoryAddress,strlen) == 0);
+    if (!done) {
+        memoryAddress += strlen;
+        while (!done && *headerlen < PICO_MAX_FOREIGN_HEADER_LEN) {
+            done = (picopal_mem_cmp(str,memoryAddress,strlen) == 0);
+            memoryAddress++;
+            (*headerlen)++;
+        }
+    }
+    if (done) {
+        return PICO_OK;
+    } else {
+        return PICO_EXC_UNEXPECTED_FILE_TYPE;
+    }
+}
+
 
 picoos_uint8 picoos_get_str (picoos_char * fromStr, picoos_uint32 * pos, picoos_char * toStr, picoos_objsize_t maxsize)
 {

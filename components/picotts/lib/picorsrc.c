@@ -334,6 +334,44 @@ static pico_status_t readHeader(picorsrc_ResourceManager this,
     return status;
 }
 
+static pico_status_t readMemoryHeader(picorsrc_ResourceManager this,
+        picoos_FileHeader header, picoos_uint32 * headerlen, picoos_uint8 *memoryAddress)
+{
+
+    picoos_uint16 hdrlen1;
+    pico_status_t status;
+
+
+    /* read PICO header */
+    status = picoos_skipPicoHeader(memoryAddress, headerlen);
+    if (PICO_OK == status) {
+
+    } else {
+        return picoos_emRaiseException(this->common->em,status,NULL,(picoos_char *)"problem reading file header");
+    }
+    /* read header length (excluding length itself) */
+    status = picoos_read_mem_pi_uint16(memoryAddress,headerlen,&hdrlen1);
+
+    if (PICO_OK == status) {
+        status = (hdrlen1 <= PICOOS_MAX_HEADER_STRING_LEN-1) ? PICO_OK : PICO_ERR_OTHER;
+        if (PICO_OK == status) {
+            picoos_mem_copy(&memoryAddress[*headerlen],(picoos_uint8 *) this->tmpHeader,hdrlen1);
+            this->tmpHeader[hdrlen1] = NULLC;
+            *headerlen += hdrlen1;
+            PICODBG_DEBUG(("got header <%s>",this->tmpHeader));
+
+            status = PICO_OK;
+        } else {
+            status = PICO_ERR_OTHER;
+        }
+        if (PICO_OK == status) {
+            status = picoos_hdrParseHeader(header, this->tmpHeader);
+        }
+    }
+    return status;
+}
+
+
 static pico_status_t picorsrc_createKnowledgeBase(
         picorsrc_ResourceManager this,
         picoos_uint8 * data,
@@ -671,6 +709,113 @@ pico_status_t picorsrc_loadResource(picorsrc_ResourceManager this,
         return PICO_OK;
     }
 }
+
+/* add preloaded resource. the type of resource file etc. are in the header,
+ * then follows the directory, then the knowledge bases themselves (as byte streams) */
+
+pico_status_t picorsrc_loadMemoryResource(picorsrc_ResourceManager this,
+        picoos_uint8 * memoryAddress, picorsrc_Resource * resource)
+{
+    picorsrc_Resource res;
+    picoos_uint32 headerlen, len;
+    picoos_file_header_t header;
+    pico_status_t status = PICO_OK;
+
+    if (resource == NULL) {
+        return PICO_ERR_NULLPTR_ACCESS;
+    } else {
+        *resource = NULL;
+    }
+
+    res = picorsrc_newResource(this->common->mm);
+
+    if (NULL == res) {
+        return picoos_emRaiseException(this->common->em,PICO_EXC_OUT_OF_MEM,NULL,NULL);
+    }
+
+    if (PICO_MAX_NUM_RESOURCES <= this->numResources) {
+        picoos_deallocate(this->common->mm, (void *) &res);
+        return picoos_emRaiseException(this->common->em,PICO_EXC_MAX_NUM_EXCEED,NULL,(picoos_char *)"no more than %i resources",PICO_MAX_NUM_RESOURCES);
+    }
+
+    /* ***************** get header info */
+
+    status = readMemoryHeader(this, &header, &headerlen, memoryAddress);
+    /* now positioned at first pos after header */
+    PICODBG_DEBUG(("got header size %d",headerlen));
+
+    /* ***************** check header values */
+    if (PICO_OK == status && isResourceLoaded(this, header.field[PICOOS_HEADER_NAME].value)) {
+        /* lingware is allready loaded, do nothing */
+        PICODBG_WARN((">>> lingware '%s' allready loaded",header.field[PICOOS_HEADER_NAME].value));
+        picoos_emRaiseWarning(this->common->em,PICO_WARN_RESOURCE_DOUBLE_LOAD,NULL,(picoos_char *)"%s",header.field[PICOOS_HEADER_NAME].value);
+        status = PICO_WARN_RESOURCE_DOUBLE_LOAD;
+    }
+
+    if (PICO_OK == status) {
+        /* get data length */
+        status = picoos_read_mem_pi_uint32(memoryAddress, &headerlen, &len);
+        PICODBG_DEBUG(("found net resource len of %i",len));
+        /* remember start of resource */
+        if (PICO_OK == status) {
+            res->start = &memoryAddress[headerlen];
+        }
+
+        /* note resource unique name */
+        if (PICO_OK == status) {
+            if (picoos_strlcpy(res->name,header.field[PICOOS_HEADER_NAME].value,PICORSRC_MAX_RSRC_NAME_SIZ) < PICORSRC_MAX_RSRC_NAME_SIZ) {
+                PICODBG_DEBUG(("assigned name %s to resource",res->name));
+                status = PICO_OK;
+            } else {
+                status = PICO_ERR_INDEX_OUT_OF_RANGE;
+                PICODBG_ERROR(("failed assigning name %s to resource",
+                               res->name));
+                picoos_emRaiseException(this->common->em,
+                                        PICO_ERR_INDEX_OUT_OF_RANGE, NULL,
+                                        (picoos_char *)"resource %s",res->name);
+            }
+        }
+
+        /* get resource type */
+        if (PICO_OK == status) {
+            if (!picoos_strcmp(header.field[PICOOS_HEADER_CONTENT_TYPE].value, PICORSRC_FIELD_VALUE_TEXTANA)) {
+                res->type = PICORSRC_TYPE_TEXTANA;
+            } else if (!picoos_strcmp(header.field[PICOOS_HEADER_CONTENT_TYPE].value, PICORSRC_FIELD_VALUE_SIGGEN)) {
+                res->type = PICORSRC_TYPE_SIGGEN;
+            } else if (!picoos_strcmp(header.field[PICOOS_HEADER_CONTENT_TYPE].value, PICORSRC_FIELD_VALUE_SIGGEN)) {
+                res->type = PICORSRC_TYPE_USER_LEX;
+            } else if (!picoos_strcmp(header.field[PICOOS_HEADER_CONTENT_TYPE].value, PICORSRC_FIELD_VALUE_SIGGEN)) {
+                res->type = PICORSRC_TYPE_USER_PREPROC;
+            } else {
+                res->type = PICORSRC_TYPE_OTHER;
+            }
+        }
+
+        if (PICO_OK == status) {
+            /* create kb list from resource */
+            status = picorsrc_getKbList(this, res->start, len, &res->kbList);
+        }
+    }
+
+    if (status == PICO_OK) {
+        /* add resource to rm */
+        res->next = this->resources;
+        this->resources = res;
+        this->numResources++;
+        *resource = res;
+        PICODBG_DEBUG(("done loading resource %s from %p", res->name, memoryAddress));
+    } else {
+        picorsrc_disposeResource(this->common->mm, &res);
+        PICODBG_ERROR(("failed to load resource"));
+    }
+
+    if (status < 0) {
+        return status;
+    } else {
+        return PICO_OK;
+    }
+}
+
 
 static pico_status_t picorsrc_releaseKbList(picorsrc_ResourceManager this, picoknow_KnowledgeBase * kbList)
 {
