@@ -498,6 +498,7 @@ pico_status_t picoos_hdrParseHeader(picoos_FileHeader header, picoos_header_stri
 pico_status_t picoos_getSVOXHeaderString(picoos_char * str, picoos_uint8 * len, picoos_uint32 maxlen);
 
 pico_status_t picoos_readPicoHeader(picoos_File f, picoos_uint32 * headerlen);
+pico_status_t picoos_skipPicoHeader(picoos_uint8 *memoryAddresss, picoos_uint32 * headerlen);
 
 
 
