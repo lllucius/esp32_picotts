@@ -34,6 +34,7 @@
 #ifndef PICOPAL_H_
 #define PICOPAL_H_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -135,6 +136,9 @@ picopal_int16 picopal_sprintf(picopal_char * dst, const picopal_char *fmt, ...);
 
 /* copies 'length' bytes from 'src' to 'dest'. (regions may be overlapping) no error checks! */
 void * picopal_mem_copy(const void * src, void * dst,  picopal_objsize_t length);
+
+/* compares 'length' bytes from 'src' to 'dest' */
+picopal_int32 picopal_mem_cmp(const void * src, void * dst,  picopal_objsize_t length);
 
 /* sets 'length' bytes starting at dest[0] to 'byte_val' */
 void * picopal_mem_set(void * dest, picopal_uint8 byte_val, picopal_objsize_t length);

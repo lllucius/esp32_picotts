@@ -252,6 +252,12 @@ void * picopal_mem_copy(const void * src, void * dst, picopal_objsize_t length)
     return memmove(dst, src, (size_t) length);
 }
 
+/* compares 'length' bytes from 'src' to 'dest'. */
+picopal_int32 picopal_mem_cmp(const void * src, void * dst,  picopal_objsize_t length)
+{
+    return memcmp(dst, src, (size_t) length);
+}
+
 /* sets 'length' bytes starting at dest[0] to 'byte_val' */
 void * picopal_mem_set(void * dest, picopal_uint8 byte_val, picopal_objsize_t length)
 {
