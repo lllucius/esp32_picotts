@@ -1,0 +1,23 @@
+menu "Pico TTS config"
+    choice PICOTTS_RESOURCE_LANGUAGE
+        prompt "Default resource language"
+        default PICOTTS_RESOURCE_ENGLISH_UK
+        help
+            This option allows you to set the language of the resource files
+            to be embedded into the build.
+        config PICOTTS_RESOURCE_NONE
+            bool "(none)"
+        config PICOTTS_RESOURCE_ENGLISH_UK
+            bool "English (UK)"
+        config PICOTTS_RESOURCE_ENGLISH_US
+            bool "English (US)"
+        config PICOTTS_RESOURCE_FRENCH
+            bool "French"
+        config PICOTTS_RESOURCE_GERMAN
+            bool "German"
+        config PICOTTS_RESOURCE_ITALIAN
+            bool "Italian"
+        config PICOTTS_RESOURCE_SPANISH
+            bool "Spanish"
+    endchoice
+endmenu
