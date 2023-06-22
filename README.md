@@ -80,7 +80,13 @@ And this the function that will load and define all of the voices you
 have configured in "menuconfig":
 
 ```
-PICO_FUNC pico_loadVoices(pico_System system);
+    PICO_FUNC pico_loadVoices(pico_System system);
 ```
 
+Documentation about SVOX Pico TTS can be found here:
+
+
+```
+    https://android.googlesource.com/platform/external/svox/+/refs/heads/master/pico_resources/docs
+```
 
