@@ -9,8 +9,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "esp_spiffs.h"
-
 #include "picoapi.h"
 #include "picoextapi.h"
 
@@ -56,7 +54,7 @@ void app_main(void)
     }
     printf("Voices loaded\n");
 
-    ret = pico_newEngine(picoSystem, PICO_VOICE_DE_DE, &picoEngine);
+    ret = pico_newEngine(picoSystem, PICO_VOICE_EN_GB, &picoEngine);
     if (ret)
     {
         pico_getSystemStatusMessage(picoSystem, ret, msg);
@@ -65,7 +63,7 @@ void app_main(void)
     }
     printf("Engine created: %p\n", picoEngine);
 
-    picoext_getEngineMemUsage(picoEngine, 0, &used, &incrUsed, &outMax);
+    picoext_getEngineMemUsage(picoEngine, 0, &used, &incrUsed, &maxUsed);
     printf("Engine memory used %d, incrUsed %d, max used %d\n", used, incrUsed, maxUsed);
 
     picoext_getSystemMemUsage(picoSystem, 0, &used, &incrUsed, &maxUsed);
