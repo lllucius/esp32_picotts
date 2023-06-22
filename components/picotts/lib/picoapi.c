@@ -837,9 +837,6 @@ PICO_FUNC pico_getEngineWarning(
 // resource files that have been embedded or from partitions.
 // ============================================================================
 
-// We'll need the partiion table API
-#include "esp_partition.h"
-
 // Define all of the externs for voices that are to be embedded automatically
 #if defined(CONFIG_PICOTTS_EN_GB_EMBED)
 extern const uint8_t PICOTTS_EMBED_EN_GB_SG[] asm("_binary_en_GB_kh0_sg_bin_start");

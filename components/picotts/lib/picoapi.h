@@ -491,6 +491,9 @@ PICO_FUNC pico_getEngineWarning(
 #define PICO_VOICE_IT_IT ((const pico_Char *) "it_IT")
 #define PICO_VOICE_ES_ES ((const pico_Char *) "es_ES")
 
+// We'll need the partiion table API
+#include "esp_partition.h"
+
 /**
 */
 PICO_FUNC pico_defineVoice(pico_System system,
