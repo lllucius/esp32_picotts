@@ -525,9 +525,6 @@ PICO_FUNC pico_releaseVoiceDefinition(
 
     return status;
 }
-
-
-
 /* *** Engine creation and deletion functions *********************************/
 
 /**
@@ -833,9 +830,341 @@ PICO_FUNC pico_getEngineWarning(
     return status;
 }
 
-#ifdef __cplusplus
-}
+// ============================================================================
+// Additional functions specific to the ESP platform
+//
+// The "pico_loadMemoryResource()" function above is required for loading
+// resource files that have been embedded or from partitions.
+// ============================================================================
+
+// We'll need the partiion table API
+#include "esp_partition.h"
+
+// Define all of the externs for voices that are to be embedded automatically
+#if defined(CONFIG_PICOTTS_EN_GB_EMBED)
+extern const uint8_t PICOTTS_EMBED_EN_GB_SG[] asm("_binary_en_GB_kh0_sg_bin_start");
+extern const uint8_t PICOTTS_EMBED_EN_GB_TA[] asm("_binary_en_GB_ta_bin_start");
 #endif
 
+#if defined(CONFIG_PICOTTS_EN_US_EMBED)
+extern const uint8_t PICOTTS_EMBED_EN_US_SG[] asm("_binary_en_US_lh0_sg_bin_start");
+extern const uint8_t PICOTTS_EMBED_EN_US_TA[] asm("_binary_en_US_ta_bin_start");
+#endif
+
+#if defined(CONFIG_PICOTTS_FR_FR_EMBED)
+extern const uint8_t PICOTTS_EMBED_FR_FR_SG[] asm("_binary_en_fr_FR_nk0_sg_bin_start");
+extern const uint8_t PICOTTS_EMBED_FR_FR_TA[] asm("_binary_en_fr_FR_ta_bin_start");
+#endif
+
+#if defined(CONFIG_PICOTTS_DE_DE_EMBED)
+extern const uint8_t PICOTTS_EMBED_DE_DE_SG[] asm("_binary_en_de_DE_gl0_sg_bin_start");
+extern const uint8_t PICOTTS_EMBED_DE_DE_TA[] asm("_binary_en_de_DE_ta_bin_start");
+#endif
+
+#if defined(CONFIG_PICOTTS_IT_IT_EMBED)
+extern const uint8_t PICOTTS_EMBED_IT_IT_SG[] asm("_binary_en_it_IT_cm0_sg_bin_start");
+extern const uint8_t PICOTTS_EMBED_IT_IT_TA[] asm("_binary_en_it_IT_ta_bin_start");
+#endif
+
+#if defined(CONFIG_PICOTTS_ES_ES_EMBED)
+extern const uint8_t PICOTTS_EMBED_ES_ES_SG[] asm("_binary_en_es_ES_zl0_sg_bin_start");
+extern const uint8_t PICOTTS_EMBED_ES_ES_TA[] asm("_binary_en_es_ES_ta_bin_start");
+#endif
+
+// ============================================================================
+// Create a voice using the memory addres of the preloaded SG and TA resource
+// files.
+// ============================================================================
+PICO_FUNC pico_defineVoice(pico_System system,
+                           const pico_Char *name,
+                           const uint8_t sg[],
+                           const uint8_t ta[])
+{
+    const uint8_t *rsrcs[2] = {sg, ta};
+    pico_Status status = PICO_OK;
+
+    // Validate picoSystem handle
+    if (!is_valid_system_handle(system))
+    {
+        return PICO_ERR_INVALID_HANDLE;
+    }
+
+    // Create a new voice definition with the supplied name
+    status = pico_createVoiceDefinition(system, name);
+    if (status != PICO_OK)
+    {
+        PICODBG_DEBUG(("Unable to create voice definition for %s", name));
+        return status;
+    }
+
+    // Process the SG and TA resource files
+    for (int i = 0; i < 2; ++i)
+    {
+        pico_Resource resource;
+        pico_Retstring rsrcName;
+        const uint8_t *addr = rsrcs[i];
+
+        // Parse the preloaded resource file
+        status = pico_loadMemoryResource(system, addr, &resource);
+        if (status)
+        {
+            PICODBG_DEBUG(("Can't load memory resource file for %s", name));
+            break;
+        }
+
+        // Get it's name
+        status = pico_getResourceName(system, resource, rsrcName);
+        if (status)
+        {
+            PICODBG_DEBUG(("Can't get the name of the loaded resource for %s", name));
+            break;
+        }
+
+        // And add it to the voice definition
+        status = pico_addResourceToVoiceDefinition(system, name, (pico_Char *) rsrcName);
+        if (status)
+        {
+            PICODBG_DEBUG(("Can't add the '%s' resource to the '%s' voice", rsrcName, name));
+            break;
+        }
+    }
+
+    return status;
+}
+
+// ============================================================================
+// Create a voice after mapping the SG and TA resources residing in partitions
+// with the given subtypes.
+// ============================================================================
+PICO_FUNC pico_loadVoiceFromPart(pico_System system,
+                                 const pico_Char *name,
+                                 esp_partition_subtype_t sg,
+                                 esp_partition_subtype_t ta)
+{
+    const esp_partition_t *sg_part;
+    const esp_partition_t *ta_part;
+    const void *sg_addr;
+    const void *ta_addr;
+    esp_partition_mmap_handle_t sg_hnd;
+    esp_partition_mmap_handle_t ta_hnd;
+    esp_err_t ret;
+
+    // Validate picoSystem handle
+    if (!is_valid_system_handle(system))
+    {
+        return PICO_ERR_INVALID_HANDLE;
+    }
+
+    // Attempt to find a partition with the SG subtype
+    sg_part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, sg, NULL);
+    if (sg_part == NULL)
+    {
+        PICODBG_DEBUG(("SG partition not found for %s", name));
+        return PICO_EXC_FILE_NOT_FOUND; 
+    }
+
+    // Attempt to find a partition with the SG subtype
+    ta_part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ta, NULL);
+    if (ta_part == NULL)
+    {
+        PICODBG_DEBUG(("TA partition not found for %s", name));
+        return PICO_EXC_FILE_NOT_FOUND; 
+    }
+
+    // Map the SG partition into the address space
+    ret = esp_partition_mmap(sg_part,
+                             0,
+                             sg_part->size,
+                             ESP_PARTITION_MMAP_DATA,
+                             &sg_addr,
+                             &sg_hnd);
+    if (ret != ESP_OK)
+    {
+        PICODBG_DEBUG(("mmap() failed for SG partition: %s", esp_err_to_name(ret)));
+        return PICO_EXC_CANT_OPEN_FILE;
+    }
+
+    // Map the SG partition into the address space
+    ret = esp_partition_mmap(ta_part,
+                             0,
+                             ta_part->size,
+                             ESP_PARTITION_MMAP_DATA,
+                             &ta_addr,
+                             &ta_hnd);
+    if (ret != ESP_OK)
+    {
+        // Unmap the SG partition
+        esp_partition_munmap(sg_hnd);
+
+        PICODBG_DEBUG(("mmap() failed for TA partition: %s", esp_err_to_name(ret)));
+        return PICO_EXC_CANT_OPEN_FILE;
+    }
+
+    // Go define the voice using the newly mapped partitions
+    return pico_defineVoice(system, name, sg_addr, ta_addr);
+}
+
+// ============================================================================
+// ============================================================================
+PICO_FUNC pico_loadVoiceFromFile(pico_System system,
+                                 const pico_Char *name,
+                                 const char *sg,
+                                 const char *ta)
+{
+    const pico_Char *rsrcs[2] = {(pico_Char *)sg, (pico_Char *)ta};
+    pico_Status status = PICO_OK;
+
+    if (!is_valid_system_handle(system))
+    {
+        return PICO_ERR_INVALID_HANDLE;
+    }
+
+    // Validate picoSystem handle
+    if (!is_valid_system_handle(system))
+    {
+        return PICO_ERR_INVALID_HANDLE;
+    }
+
+    // Create a new voice definition with the supplied name
+    status = pico_createVoiceDefinition(system, name);
+printf("create voice %d\n", status);
+    if (status != PICO_OK)
+    {
+        PICODBG_DEBUG(("Unable to create voice definition for %s", name));
+        return status;
+    }
+
+    // Process the SG and TA resource files
+    for (int i = 0; i < 2; ++i)
+    {
+        pico_Resource resource;
+        pico_Retstring rsrcName;
+        const pico_Char *path = rsrcs[i];
+
+        // Parse the preloaded resource file
+        status = pico_loadResource(system, path, &resource);
+    pico_Retstring outMessage;
+        pico_getSystemStatusMessage(system, status, outMessage);
+printf("load voice %d %s\n", status, outMessage);
+        if (status)
+        {
+            PICODBG_DEBUG(("Can't load %s resource file for %s", path, name));
+            break;
+        }
+
+        // Get it's name
+        status = pico_getResourceName(system, resource, rsrcName);
+printf("load name %s\n", rsrcName);
+        if (status)
+        {
+            PICODBG_DEBUG(("Can't get the name of the loaded resource for %s", name));
+            break;
+        }
+
+        // And add it to the voice definition
+        status = pico_addResourceToVoiceDefinition(system, name, (pico_Char *) rsrcName);
+printf("add resource %d\n", status);
+        if (status)
+        {
+            PICODBG_DEBUG(("Can't add the '%s' resource to the '%s' voice", rsrcName, name));
+            break;
+        }
+    }
+
+    return status;
+}
+
+// Create some shorthand defines to make life easier
+#define F_MEM(n, l) \
+    status = pico_defineVoice(system, (const pico_Char *) n, \
+                              PICOTTS_EMBED_ ## l ## _SG, \
+                              PICOTTS_EMBED_ ## l ## _TA); \
+    if (status) \
+        return status;
+
+
+#define F_PART(n, l) \
+    status = pico_loadVoiceFromPart(system, (const pico_Char *) n, \
+                                    ESP_PARTITION_SUBTYPE_DATA_ ## l ## _SG, \
+                                    ESP_PARTITION_SUBTYPE_DATA_ ## l ## _TA); \
+    if (status) \
+        return status;
+
+#define F_FILE(n, l) \
+    status = pico_loadVoiceFromFile(system, (const pico_Char *) n, \
+                                    CONFIG_PICOTTS_ ## l ## _SG_FILE_NAME, \
+                                    CONFIG_PICOTTS_ ## l ## _TA_FILE_NAME); \
+    if (status) \
+        return status;
+
+// ============================================================================
+// Define all configured voices
+// ============================================================================
+PICO_FUNC pico_loadVoices(pico_System system)
+{
+    pico_Status status = PICO_OK;
+
+    // Validate picoSystem handle
+    if (!is_valid_system_handle(system))
+    {
+        return PICO_ERR_INVALID_HANDLE;
+    }
+
+    // Process the German language
+#if defined(CONFIG_PICOTTS_DE_DE_EMBED)
+    F_MEM("de_DE", DE_DE);
+#elif defined(CONFIG_PICOTTS_DE_DE_PART)
+    F_PART("de_DE", DE_DE);
+#elif defined(CONFIG_PICOTTS_DE_DE_FILE)
+    F_FILE("de_DE", DE_DE);
+#endif
+
+    // Process the British English language
+#if defined(CONFIG_PICOTTS_EN_GB_EMBED)
+    F_MEM("en_GB", EN_GB);
+#elif defined(CONFIG_PICOTTS_EN_GB_PART)
+    F_PART("en_GB", EN_GB);
+#elif defined(CONFIG_PICOTTS_EN_GB_FILE)
+    F_FILE("en_GB", EN_GB);
+#endif
+
+    // Process the US English language
+#if defined(CONFIG_PICOTTS_EN_US_EMBED)
+    F_MEM("en_US", EN_US);
+#elif defined(CONFIG_PICOTTS_EN_US_PART)
+    F_PART("en_US", EN_US);
+#elif defined(CONFIG_PICOTTS_EN_US_FILE)
+    F_FILE("en_US", EN_US);
+#endif
+
+    // Process the Spanish language
+#if defined(CONFIG_PICOTTS_ES_ES_EMBED)
+    F_MEM("es_ES", ES_ES);
+#elif defined(CONFIG_PICOTTS_ES_ES_PART)
+    F_PART("es_ES", ES_ES);
+#elif defined(CONFIG_PICOTTS_ES_ES_FILE)
+    F_FILE("es_ES", ES_ES);
+#endif
+
+    // Process the French language
+#if defined(CONFIG_PICOTTS_FR_FR_EMBED)
+    F_MEM("fr_FR", FR_FR);
+#elif defined(CONFIG_PICOTTS_FR_FR_PART)
+    F_PART("fr_FR", FR_FR);
+#elif defined(CONFIG_PICOTTS_FR_FR_FILE)
+    F_FILE("fr_FR", FR_FR);
+#endif
+
+    // Process the Italian language
+#if defined(CONFIG_PICOTTS_IT_IT_EMBED)
+    F_MEM("it_IT", IT_IT);
+#elif defined(CONFIG_PICOTTS_IT_IT_PART)
+    F_PART("it_IT", IT_IT);
+#elif defined(CONFIG_PICOTTS_IT_IT_FILE)
+    F_FILE("it_IT", IT_IT);
+#endif
+
+    return status;
+}
 
 /* end */

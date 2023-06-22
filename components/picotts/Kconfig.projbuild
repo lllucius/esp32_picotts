@@ -1,23 +1,128 @@
 menu "Pico TTS config"
-    choice PICOTTS_RESOURCE_LANGUAGE
-        prompt "Default resource language"
-        default PICOTTS_RESOURCE_ENGLISH_UK
-        help
-            This option allows you to set the language of the resource files
-            to be embedded into the build.
-        config PICOTTS_RESOURCE_NONE
-            bool "(none)"
-        config PICOTTS_RESOURCE_ENGLISH_UK
-            bool "English (UK)"
-        config PICOTTS_RESOURCE_ENGLISH_US
-            bool "English (US)"
-        config PICOTTS_RESOURCE_FRENCH
-            bool "French"
-        config PICOTTS_RESOURCE_GERMAN
-            bool "German"
-        config PICOTTS_RESOURCE_ITALIAN
-            bool "Italian"
-        config PICOTTS_RESOURCE_SPANISH
-            bool "Spanish"
-    endchoice
+    menu "Voice selections"
+        choice PICOTTS_EN_GB
+            prompt "English (GB)"
+            config PICOTTS_EN_GB_NONE
+                bool "not loaded"
+            config PICOTTS_EN_GB_EMBED
+                bool "Embed into application"
+            config PICOTTS_EN_GB_PART
+                bool "Load from partition"
+            config PICOTTS_EN_GB_FILE
+                bool "Load from file system"
+            config PICOTTS_EN_GB_TA_FILE_NAME
+                depends on PICOTTS_EN_GB_FILE
+                default "/data/lang/en-GB_ta.bin"
+                string "Language resource file"
+            config PICOTTS_EN_GB_SG_FILE_NAME
+                depends on PICOTTS_EN_GB_FILE
+                default "/data/lang/en-GB_kh0_sg.bin"
+                string "Voice resource file"
+        endchoice
+
+        choice PICOTTS_EN_US
+            prompt "English (US)"
+            config PICOTTS_EN_US_NONE
+                bool "not loaded"
+            config PICOTTS_EN_US_EMBED
+                bool "Embed into application"
+            config PICOTTS_EN_US_PART
+                bool "Load from partition"
+            config PICOTTS_EN_US_FILE
+                bool "Load from file system"
+            config PICOTTS_EN_US_TA_FILE_NAME
+                depends on PICOTTS_EN_US_FILE
+                default "/data/lang/en-GB_ta.bin"
+                string "Language resource file"
+            config PICOTTS_EN_US_SG_FILE_NAME
+                depends on PICOTTS_EN_US_FILE
+                default "/data/lang/en-GB_lh0_sg.bin"
+                string "Voice resource file"
+        endchoice
+
+        choice PICOTTS_FR_FR
+            prompt "French"
+            config PICOTTS_FR_FR_NONE
+                bool "not loaded"
+            config PICOTTS_FR_FR_EMBED
+                bool "Embed into application"
+            config PICOTTS_FR_FR_PART
+                bool "Load from partition"
+            config PICOTTS_FR_FR_FILE
+                bool "Load from file system"
+            config PICOTTS_FR_FR_TA_FILE_NAME
+                depends on PICOTTS_FR_FR_FILE
+                default "/data/lang/fr-FR_ta.bin"
+                string "Language resource file"
+            config PICOTTS_FR_FR_SG_FILE_NAME
+                depends on PICOTTS_FR_FR_FILE
+                default "/data/lang/fr-FR_nk0_sg.bin"
+                string "Voice resource file"
+        endchoice
+
+        choice PICOTTS_DE_DE
+            prompt "German"
+            config PICOTTS_DE_DE_NONE
+                bool "not loaded"
+            config PICOTTS_DE_DE_EMBED
+                bool "Embed into application"
+            config PICOTTS_DE_DE_PART
+                bool "Load from partition"
+            config PICOTTS_DE_DE_FILE
+                bool "Load from file system"
+            config PICOTTS_DE_DE_TA_FILE_NAME
+                depends on PICOTTS_DE_DE_FILE
+                default "/data/lang/de-DE_ta.bin"
+                string "Language resource file"
+            config PICOTTS_DE_DE_SG_FILE_NAME
+                depends on PICOTTS_DE_DE_FILE
+                default "/data/lang/de-DE_gl0_sg.bin"
+                string "Voice resource file"
+        endchoice
+
+        choice PICOTTS_IT_IT
+            prompt "Italian"
+            config PICOTTS_IT_IT_NONE
+                bool "not loaded"
+            config PICOTTS_IT_IT_EMBED
+                bool "Embed into application"
+            config PICOTTS_IT_IT_PART
+                bool "Load from partition"
+            config PICOTTS_IT_IT_FILE
+                bool "Load from file system"
+            config PICOTTS_IT_IT_TA_FILE_NAME
+                depends on PICOTTS_IT_IT_FILE
+                default "/data/lang/it-IT_ta.bin"
+                string "Language resource file"
+            config PICOTTS_IT_IT_SG_FILE_NAME
+                depends on PICOTTS_IT_IT_FILE
+                default "/data/lang/it-IT_cm0_sg.bin"
+                string "Voice resource file"
+        endchoice
+
+        choice PICOTTS_ES_ES
+            prompt "Spanish"
+            config PICOTTS_ES_ES_NONE
+                bool "not loaded"
+            config PICOTTS_ES_ES_EMBED
+                bool "Embed into application"
+            config PICOTTS_ES_ES_PART
+                bool "Load from partition"
+            config PICOTTS_ES_ES_FILE
+                bool "Load from file system"
+            config PICOTTS_ES_ES_TA_FILE_NAME
+                depends on PICOTTS_ES_ES_FILE
+                default "/data/lang/es-ES_ta.bin"
+                string "Language resource file"
+            config PICOTTS_ES_ES_SG_FILE_NAME
+                depends on PICOTTS_ES_ES_FILE
+                default "/data/lang/es-ES_zl0_sg.bin"
+                string "Voice resource file"
+        endchoice
+    endmenu # "Voice selections"
+
+    config PICOTTS_AUTOCREATE_PARTITIONS
+        bool "Automatically add voice resource partitions"
+    config PICOTTS_FLASH_IN_PROJECT
+        bool "Automatically flash voice resource partitions with app"
 endmenu

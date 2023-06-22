@@ -9,6 +9,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "esp_spiffs.h"
+
 #include "picoapi.h"
 #include "picoextapi.h"
 
@@ -19,11 +21,7 @@ static pico_Engine picoEngine = NULL;
 
 static pico_Char samples[512];
 
-static const pico_Char *picoVoiceName = (pico_Char *) "PicoVoice";
 static const pico_Uint32 picoMemSize = 2500000;
-
-extern const uint8_t sg_bin_start[] asm("_binary_" PICOTTS_SG_NAME "_start");
-extern const uint8_t ta_bin_start[] asm("_binary_" PICOTTS_TA_NAME "_start");
 
 void app_main(void)
 {
@@ -31,13 +29,10 @@ void app_main(void)
     pico_Int16 text_remaining = strlen(text) + 1; // we want the null terminator also
     pico_Retstring msg;
     pico_Status ret;
+    pico_Int32 used;
+    pico_Int32 incrUsed;
+    pico_Int32 maxUsed;
     int total_bytes = 0;
-
-    const uint8_t *resources[] =
-    {
-        ta_bin_start,
-        sg_bin_start,
-    };
 
     void *mem = malloc(picoMemSize);
     ret = pico_initialize(mem, picoMemSize, &picoSystem);
@@ -49,49 +44,19 @@ void app_main(void)
     }
     printf("System initialized: %p\n", picoSystem);
 
-    ret = pico_createVoiceDefinition(picoSystem, picoVoiceName);
+    picoext_getSystemMemUsage(picoSystem, 0, &used, &incrUsed, &maxUsed);
+    printf("System memory used %d, incrUsed %d, max used %d\n", used, incrUsed, maxUsed);
+
+    ret = pico_loadVoices(picoSystem);
     if (ret)
     {
         pico_getSystemStatusMessage(picoSystem, ret, msg);
-        ESP_LOGE(TAG, "Cannot create voice definition (%i): %s\n", ret, msg);
+        ESP_LOGE(TAG, "Loading voices failed (%i): %s\n", ret, msg);
         abort();
     }
-    printf("Voice definition '%s' created\n", (char *) picoVoiceName);
+    printf("Voices loaded\n");
 
-    for (int i = 0; i < 2; ++i)
-    {
-        pico_Resource resource;
-        pico_Retstring resourceName;
-
-        ret = pico_loadMemoryResource(picoSystem, resources[i], &resource);
-        if (ret)
-        {
-            pico_getSystemStatusMessage(picoSystem, ret, msg);
-            ESP_LOGE(TAG, "Cannot load tts resource file (%i): %s\n", ret, msg);
-            abort();
-        }
-        printf("Memory resource %p loaded\n", resource);
-
-        ret = pico_getResourceName(picoSystem, resource, resourceName);
-        if (ret)
-        {
-            pico_getSystemStatusMessage(picoSystem, ret, msg);
-            ESP_LOGE(TAG, "Cannot get the tts resource name (%i): %s\n", ret, msg);
-            abort();
-        }
-        printf("Resource is named '%s'\n", resourceName);
-
-        ret = pico_addResourceToVoiceDefinition(picoSystem, picoVoiceName, (pico_Char *) resourceName);
-        if (ret)
-        {
-            pico_getSystemStatusMessage(picoSystem, ret, msg);
-            ESP_LOGE(TAG, "Cannot add the tts resource to the voice (%i): %s\n", ret, msg);
-            abort();
-        }
-        printf("Added resource to voice\n");
-    }
-
-    ret = pico_newEngine(picoSystem, picoVoiceName, &picoEngine);
+    ret = pico_newEngine(picoSystem, PICO_VOICE_DE_DE, &picoEngine);
     if (ret)
     {
         pico_getSystemStatusMessage(picoSystem, ret, msg);
@@ -99,6 +64,12 @@ void app_main(void)
         abort();
     }
     printf("Engine created: %p\n", picoEngine);
+
+    picoext_getEngineMemUsage(picoEngine, 0, &used, &incrUsed, &outMax);
+    printf("Engine memory used %d, incrUsed %d, max used %d\n", used, incrUsed, maxUsed);
+
+    picoext_getSystemMemUsage(picoSystem, 0, &used, &incrUsed, &maxUsed);
+    printf("System memory used %d, incrUsed %d, max used %d\n", used, incrUsed, maxUsed);
 
     ret = PICO_STEP_IDLE;
     for (;;)

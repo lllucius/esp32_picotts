@@ -2,5 +2,18 @@
 # Name, Type, SubType, Offset, Size, Flags
 nvs,data,nvs,0x9000,24K,
 phy_init,data,phy,0xf000,4K,
-factory,app,factory,0x10000,3M,
+factory,app,factory,0x10000,1M,
 
+#
+# Resource files can be stored in a filesystem
+#storage,data,spiffs,  ,2M,
+
+#
+# Or directly within a partition
+#de_de_sg,data,de_de_sg,,624K,
+#de_de_ta,data,de_de_ta,,432K,
+
+#
+# And you don't even have to specify the partition if you use the automatic
+# partition creation (see "Pico TTS config" in "idf.py menuconfig".
+# ...

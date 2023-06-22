@@ -483,6 +483,38 @@ PICO_FUNC pico_getEngineWarning(
         pico_Retstring outMessage
         );
 
+
+#define PICO_VOICE_EN_GB ((const pico_Char *) "en_GB")
+#define PICO_VOICE_EN_US ((const pico_Char *) "en_US")
+#define PICO_VOICE_FR_FR ((const pico_Char *) "fr_FR")
+#define PICO_VOICE_DE_DE ((const pico_Char *) "de_DE")
+#define PICO_VOICE_IT_IT ((const pico_Char *) "it_IT")
+#define PICO_VOICE_ES_ES ((const pico_Char *) "es_ES")
+
+/**
+*/
+PICO_FUNC pico_defineVoice(pico_System system,
+                           const pico_Char *name,
+                           const uint8_t sg[],
+                           const uint8_t ta[]);
+
+/**
+*/
+PICO_FUNC pico_loadVoiceFromPart(pico_System system,
+                                 const pico_Char *name,
+                                 esp_partition_subtype_t sg,
+                                 esp_partition_subtype_t ta);
+
+/**
+*/
+PICO_FUNC pico_loadVoiceFromFile(pico_System system,
+                                 const pico_Char *name,
+                                 const char *sg,
+                                 const char *ta);
+/**
+*/
+PICO_FUNC pico_loadVoices(pico_System system);
+
 #ifdef __cplusplus
 }
 #endif
